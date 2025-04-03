@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=, initial-scale=1.0">
+  <title>Treq Store
+  </title>
+  <style>
+   body {
+       font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif ;
+       font-size: larger;
+        background-color: black;
+        color: white;
+        text-align: center;
+    }
+</style>
+  </head>
+<body>
+
+    <header>
+        <nav>
+            <h1>TREQ STORE</h1>
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Shop</a></li>
+                <li><a href="#">Collections</a></li>
+                <li><a href="#">Cart (<span id="cart-count">0</span>)</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section>
+        <h2>Luxury & Elegance</h2>
+        <p>Discover the latest Treq Store collections.</p>
+        <button>Shop Now</button>
+    </section>
+
+    <section>
+        <h2>Featured Products</h2>
+        <div>
+            <div>
+              <img src="https://5.imimg.com/data5/SELLER/Default/2023/11/363761195/FK/YL/MC/188692646/881d463b-d215-44c2-b975-61da4b959f4a-1000x1000.webp" 
+              alt="Treq Store Bag" 
+              width="300">
+                <h3>Treq Leather Bag</h3>
+                <p>Ksh.1500</p>
+                <button onclick="addToCart('Treq Leather Bag', 1500)">Add to Cart</button>
+                
+                 
+            </div>
+            <div>
+              <img src="https://www.timberland.com.sg/wp-content/uploads/product/f23/A5RJD231-HERO-768x768.jpg"
+              alt="Timberland Shoes" 
+              width="300">
+                <h3>Timberland Shoes</h3>
+                <p>Ksh.75,500</p>
+                <button onclick="addToCart('Timberland Shoes', 1500)">Add to Cart</button>
+                
+                 
+            </div>
+
+            <div>
+              <img src="https://y2k-wave.com/cdn/shop/files/4_1091c7fe-e3e9-4ab7-aa5b-e8f3c927a999.png?v=1699029177"
+              alt="Mea Culpa Beanie" 
+              width="300">
+                <h3>Mea Culpa Beanie</h3>
+                <p>Ksh.500</p>
+                <button onclick="addToCart('Mea Culpa Beanie', 500)">Add to Cart</button>
+                
+                 
+            </div>
+            <div>
+              <img src="https://www.zaqq.com/cdn/shop/files/2_4b49ffdd-de3c-43c6-8312-0ef8aa1ce427.jpg?v=1731746721&width=1445" 
+              alt="Treq Store Shoes" 
+              width="300">
+                <h3>Treq Sneakers</h3>
+                <p>Ksh.10,200</p>
+                <button onclick="addToCart('Treq Sneakers', 1200)">Add to Cart</button>
+            </div>
+        </div>
+      
+    </section>
+    <style>.CONTACTUS-button{
+      background-color: rgb(3, 81, 19);
+      color:white;
+      border:none;
+      height:40px;
+      width:130px; 
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight: bold;
+      transition:opacity 0.15s;
+      margin-right: 20px;
+      margin-left: 20px;
+      }
+      .CONTACTUS-button:hover{ 
+        background-color: red;
+        opacity: 0.8;
+      }
+      .CONTACTUS-button:active{ 
+        background-color: rgb(43, 0, 255);
+      }
+       </style>
+    <button class="CONTACTUS-button">CONTACT US</button>
+    <style>.Help-button{
+      height:40px;
+      width:90px; 
+      border-radius: 4px;
+      border-width: 2p x;
+      cursor:pointer;
+      font-weight: bold;
+      margin-right: 20px;
+      margin-left: 20px;
+      height:40px;
+      width:90px; 
+      border-radius: 4px;
+      border-width: 2p x;
+      cursor:pointer;
+      font-weight: bold;
+      margin-right: 20px;
+      margin-left: 20px;
+      }
+      .Help-button:hover{background-color: rgb(188, 232, 248);
+      }
+      .Help-button:hover{active: rgb(38, 98, 42);
+      }
+       </style>
+    <button class="Help-button">Help</button> 
+    
+    <footer>
+        <p>© 2025 Treq Store. All rights reserved.</p>
+    </footer>
+  </body>
+  </html>
+
+  <script>
+    let cartCount = 0;
+    function addToCart(product, price) {
+        cartCount++;
+        document.getElementById('cart-count').innerText = cartCount;
+        alert(`${product} added to cart!`);
+    }
+</script>
+

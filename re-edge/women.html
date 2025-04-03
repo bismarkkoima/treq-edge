@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Women's Collection - Treq Store</title>
+    <style>
+        body {
+            font-family:'Times New Roman', Times, serif;
+            background-color: black;
+            color: rgb(255, 255, 255);
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .banner {
+            position: relative;
+            width: 100%;
+            height: 200px; 
+            overflow: hidden;
+        }
+
+        .banner img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        .title {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            margin: 0;
+        }
+
+        .nav-bar {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-bar a {
+            text-decoration: none;
+            color: white;
+            font-size: 18px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            background: #273817;
+        }
+
+        .nav-bar a:hover {
+            background: #870000;
+            color: black;
+        }
+
+        .search-bar {
+            margin: 20px auto;
+            width: 50%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+        }
+
+        .products {
+            margin-top: 40px;
+        }
+
+        .product img {
+            width: 300px;
+            height: 300px; 
+            object-fit: cover; 
+            border-radius: 10px;
+        }
+
+        .product {
+            display: inline-block;
+            margin: 20px;
+            text-align: center;
+        }
+
+        button {
+            background-color: #ffffff;
+            color: rgb(0, 0, 0);
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #e5e8eb;
+        }
+    </style>
+</head>
+<body>
+    <header class="banner">
+        <img src="https://d1fufvy4xao6k9.cloudfront.net/images/blog/posts/2024/07/header_image/white_minimalist_profile_linkedin_banner.jpg" 
+             alt="Treq Store Minimalist Banner">
+        <h1 class="title">Women's Collection</h1>
+        <nav class="nav-bar">
+            <a href="final3.html">Home</a>
+            <a href="shop.html">Shop</a>
+            <a href="women.html">Women</a>
+            <a href="men.html">Men</a>
+            <a href="collections.html">Collections</a>
+            <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+        </nav>
+    </header>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search..." onkeyup="searchProducts()">
+    </div>
+
+    <section class="products" id="product-list">
+        <h2>Bidhaa</h2>
+
+        <div class="product">
+            <img src="https://scontent.fnuu2-1.fna.fbcdn.net/v/t1.6435-9/103536256_166398585002086_7252862180137288129_n.jpg" alt="Okala">
+            <h3>Okala</h3>
+            <p>Ksh.150</p>
+            <button onclick="addToCart('Okala', 150, 'https://scontent.fnuu2-1.fna.fbcdn.net/v/t1.6435-9/103536256_166398585002086_7252862180137288129_n.jpg')">Add to Cart</button>
+        </div>
+
+        <div class="product">
+            <img src="https://i.ebayimg.com/images/g/4QcAAOSwo6Vk70Mq/s-l1600.webp" alt="Elegant Dress">
+            <h3>Elegant Dress</h3>
+            <p>Ksh. 3,500</p>
+            <button onclick="addToCart('Elegant Dress', 3500, 'https://i.ebayimg.com/images/g/4QcAAOSwo6Vk70Mq/s-l1600.webp')">Add to Cart</button>
+        </div>
+
+        <div class="product">
+            <img src="https://image.kilimall.com/kenya/shop/store/goods/1842/2017/05/1842_05495489084265546.jpg" alt="Swim Suit">
+            <h3>Swimming Suit</h3>
+            <p>Ksh. 300</p>
+            <button onclick="addToCart('Swimming Suit', 300, 'https://image.kilimall.com/kenya/shop/store/goods/1842/2017/05/1842_05495489084265546.jpg')">Add to Cart</button>
+        </div>
+
+        <div class="product">
+            <img src="https://5.imimg.com/data5/SELLER/Default/2023/11/363761195/FK/YL/MC/188692646/881d463b-d215-44c2-b975-61da4b959f4a-1000x1000.webp" alt="Luxury Handbag">
+            <h3>Luxury Handbag</h3>
+            <p>Ksh. 5,500</p>
+            <button onclick="addToCart('Luxury Handbag', 5500, 'https://5.imimg.com/data5/SELLER/Default/2023/11/363761195/FK/YL/MC/188692646/881d463b-d215-44c2-b975-61da4b959f4a-1000x1000.webp')">Add to Cart</button>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Treq Store. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        document.getElementById('cart-count').innerText = cart.length;
+
+        function addToCart(name, price, image) {
+            let existingItem = cart.find(item => item.name === name);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ name, price, quantity: 1, image });
+            }
+            localStorage.setItem("cart", JSON.stringify(cart));
+            document.getElementById('cart-count').innerText = cart.length;
+            alert(`${name} added to cart!`);
+        }
+
+        function searchProducts() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            let products = document.querySelectorAll('.product');
+            products.forEach(product => {
+                let title = product.querySelector('h3').innerText.toLowerCase();
+                if (title.includes(input)) {
+                    product.style.display = "inline-block";
+                } else {
+                    product.style.display = "none";
+                }
+            });
+        }
+    </script>
+</body>
+</html>
