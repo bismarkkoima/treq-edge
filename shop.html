@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-title">
+      <span class="eyebrow" id="shop-eyebrow">The collection</span>
+      <h1 id="shop-title">Shop All</h1>
+    </div>
+
+    <div class="toolbar">
+      <div class="chips" id="gender-chips"></div>
+      <div class="chips">
+        <select id="category" aria-label="Category"></select>
+        <select id="universe" aria-label="Universe"></select>
+        <select id="sort" aria-label="Sort">
+          <option value="featured">Featured</option>
+          <option value="new">Newest</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+        </select>
+      </div>
+      <span class="result-count" id="count"></span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const state = {
+      gender: params.get("gender") || "all",
+      category: params.get("category") || "all",
+      universe: params.get("universe") || "all",
+      sort: params.get("new") ? "new" : "featured",
+      q: (params.get("q") || "").toLowerCase()
+    };
+
+    const genders = { all: "All", women: "Women", men: "Men", unisex: "Unisex" };
+    const categorySelect = document.getElementById("category");
+    const universeSelect = document.getElementById("universe");
+    categorySelect.innerHTML = '<option value="all">All categories</option>' +
+      Object.entries(CATEGORIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+    universeSelect.innerHTML = '<option value="all">All universes</option>' +
+      Object.entries(UNIVERSES).map(([k, u]) => `<option value="${k}">${u.name}</option>`).join("");
+
+    function render() {
+      document.getElementById("gender-chips").innerHTML = Object.entries(genders).map(([k, v]) =>
+        `<button class="chip ${state.gender === k ? "active" : ""}" data-gender="${k}">${v}</button>`).join("");
+      categorySelect.value = state.category;
+      universeSelect.value = state.universe;
+      document.getElementById("sort").value = state.sort;
+
+      let items = PRODUCTS.filter(p =>
+        (state.gender === "all" || p.gender === state.gender || (p.gender === "unisex" && state.gender !== "unisex")) &&
+        (state.category === "all" || p.category === state.category) &&
+        (state.universe === "all" || p.universe === state.universe) &&
+        (!state.q || (p.name + " " + p.category + " " + p.description).toLowerCase().includes(state.q))
+      );
+      if (state.sort === "new") items = [...items].sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+      if (state.sort === "price-asc") items = [...items].sort((a, b) => a.price - b.price);
+      if (state.sort === "price-desc") items = [...items].sort((a, b) => b.price - a.price);
+
+      const title = state.q ? `Results for “${state.q}”`
+        : state.category !== "all" ? CATEGORIES[state.category]
+        : state.gender !== "all" ? genders[state.gender]
+        : state.sort === "new" ? "New In" : "Shop All";
+      document.getElementById("shop-title").textContent = title;
+      document.title = `${title} — Treq Edge`;
+      document.getElementById("count").textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+      document.getElementById("grid").innerHTML = items.length ? items.map(productCard).join("") :
+        `<div class="empty" style="grid-column:1/-1"><p>No pieces match your selection.</p><a class="btn-line" href="shop.html">Clear filters</a></div>`;
+    }
+
+    document.getElementById("gender-chips").addEventListener("click", e => {
+      const chip = e.target.closest("[data-gender]");
+      if (chip) { state.gender = chip.dataset.gender; render(); }
+    });
+    categorySelect.onchange = () => { state.category = categorySelect.value; render(); };
+    universeSelect.onchange = () => { state.universe = universeSelect.value; render(); };
+    document.getElementById("sort").onchange = e => { state.sort = e.target.value; render(); };
+    render();
+  </script>
+</body>
+</html>

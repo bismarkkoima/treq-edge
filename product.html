@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container" id="pdp-root"></main>
+
+  <section class="section container">
+    <div class="section-head"><h2>You may also like</h2></div>
+    <div class="rail" id="related"></div>
+  </section>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const product = findProduct(new URLSearchParams(location.search).get("id")) || PRODUCTS[0];
+    const universe = UNIVERSES[product.universe];
+    let selectedSize = product.sizes.length === 1 ? product.sizes[0] : null;
+    setUniverse(product.universe);
+    document.title = `${product.name} — Treq Edge`;
+
+    document.getElementById("pdp-root").innerHTML = `
+      <div class="pdp">
+        <div class="pdp-media" id="zoom">
+          <img src="${product.image}" alt="${escapeHtml(product.name)}" onerror="imageFallback(this)">
+        </div>
+        <div class="pdp-info">
+          <a class="eyebrow" href="collections.html#${product.universe}">${universe.name} universe · ${CATEGORIES[product.category]}</a>
+          <h1>${escapeHtml(product.name)}</h1>
+          <p class="price">${formatPrice(product.price)}</p>
+          <p class="muted">${escapeHtml(product.description)}</p>
+          <div>
+            <span class="eyebrow" style="margin-bottom:10px">Colour: ${product.colors.join(" / ")}</span>
+          </div>
+          <div>
+            <span class="eyebrow" style="margin-bottom:10px">Select size</span>
+            <div class="sizes" id="sizes">
+              ${product.sizes.map(s => `<button class="size ${s === selectedSize ? "active" : ""}" data-size="${s}">${s}</button>`).join("")}
+            </div>
+          </div>
+          <div class="pdp-actions">
+            <button class="btn" id="add">Add to shopping bag</button>
+            <button class="wish-big ${wishlist.includes(product.id) ? "active" : ""}" data-wish="${product.id}" aria-label="Save to wishlist" onclick="toggleWishlist('${product.id}')">${ICONS.heart}</button>
+          </div>
+          <a class="link-btn" href="contact.html">Contact a client advisor</a>
+          <div>
+            <details open><summary>Product details</summary><p>${escapeHtml(product.description)} Part of the ${universe.name} universe — ${universe.tagline.toLowerCase()}</p></details>
+            <details id="shipping"><summary>Delivery &amp; returns</summary><p>Two-day delivery across Kenya, complimentary in Nairobi on orders over KSh 5,000. Free returns within 7 days in original condition.</p></details>
+            <details><summary>Payment</summary><p>M-Pesa, Airtel Money, or card. All payments are encrypted end to end.</p></details>
+            <details><summary>Gifting</summary><p>Signature packaging and a handwritten note are included with every order.</p></details>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById("sizes").addEventListener("click", e => {
+      const btn = e.target.closest("[data-size]");
+      if (!btn) return;
+      selectedSize = btn.dataset.size;
+      document.querySelectorAll(".size").forEach(b => b.classList.toggle("active", b === btn));
+    });
+    document.getElementById("add").onclick = () => {
+      if (!selectedSize) { toast("Please select a size"); return; }
+      addToCart(product.id, selectedSize);
+    };
+
+    const zoom = document.getElementById("zoom");
+    zoom.addEventListener("mousemove", e => {
+      const img = zoom.querySelector("img");
+      if (!img) return;
+      const r = zoom.getBoundingClientRect();
+      img.style.transformOrigin = `${(e.clientX - r.left) / r.width * 100}% ${(e.clientY - r.top) / r.height * 100}%`;
+      img.style.transform = "scale(1.8)";
+    });
+    zoom.addEventListener("mouseleave", () => {
+      const img = zoom.querySelector("img");
+      if (img) img.style.transform = "";
+    });
+
+    const related = PRODUCTS.filter(p => p.id !== product.id && (p.universe === product.universe || p.category === product.category));
+    document.getElementById("related").innerHTML = related.map(productCard).join("");
+  </script>
+</body>
+</html>
