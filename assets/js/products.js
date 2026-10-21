@@ -6,7 +6,9 @@ const UNIVERSES = {
   riviera: { name: "Riviera",   tagline: "Resort silhouettes for sun, salt and slow days.",    accent: "#3d8fd1" }
 };
 
-const PRODUCTS = [
+// The original catalogue. The admin dashboard can replace it with a saved
+// catalogue in localStorage; see loadCatalog() below.
+const DEFAULT_PRODUCTS = [
   {
     id: "treq-leather-bag", name: "Treq Leather Bag", price: 1500,
     gender: "unisex", category: "bags", universe: "noir", isNew: true,
@@ -100,6 +102,31 @@ const CATEGORIES = {
   accessories: "Accessories",
   swimwear: "Swimwear"
 };
+
+// Fill gaps so hand-edited or imported products can't break the pages.
+function normalizeProduct(p) {
+  return {
+    ...p,
+    price: Number(p.price) || 0,
+    gender: ["women", "men", "unisex"].includes(p.gender) ? p.gender : "unisex",
+    category: CATEGORIES[p.category] ? p.category : "accessories",
+    universe: UNIVERSES[p.universe] ? p.universe : "noir",
+    image: p.image || "",
+    sizes: Array.isArray(p.sizes) && p.sizes.length ? p.sizes : ["One size"],
+    colors: Array.isArray(p.colors) && p.colors.length ? p.colors : ["—"],
+    description: p.description || ""
+  };
+}
+
+function loadCatalog() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("catalog"));
+    if (Array.isArray(saved)) return saved.filter(p => p && p.id && p.name).map(normalizeProduct);
+  } catch (e) { /* fall back to the default catalogue */ }
+  return DEFAULT_PRODUCTS.map(p => ({ ...p }));
+}
+
+const PRODUCTS = loadCatalog();
 
 function findProduct(id) {
   return PRODUCTS.find(p => p.id === id);

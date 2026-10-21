@@ -245,6 +245,7 @@ function renderLayout() {
         <a href="collections.html">The multiverse</a>
         <a href="index.html#craft">Craft &amp; sustainability</a>
         <a href="contact.html">Careers</a>
+        <a href="admin.html">Admin dashboard</a>
       </div>
       <div class="newsletter">
         <p class="eyebrow">Sign up for updates</p>

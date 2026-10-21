@@ -14,6 +14,7 @@ A luxury fashion storefront built with plain HTML, CSS and JavaScript — no bui
 | `wishlist.html` | Saved pieces |
 | `stores.html` | Store locator that sorts boutiques by distance from your location |
 | `contact.html` / `help.html` | Client services and searchable FAQs |
+| `admin.html` | Catalogue dashboard: add, edit and delete products, load test catalogues, import / export JSON |
 
 Shared features on every page: announcement ticker, full-screen menu, live search overlay, slide-out shopping bag and account drawers, KSh / USD currency switch, light / dark theme, cookie notice and back-to-top.
 
@@ -23,7 +24,22 @@ Shared features on every page: announcement ticker, full-screen menu, live searc
 assets/css/style.css   design system and layout
 assets/js/products.js  catalogue and universe data — edit this to add products
 assets/js/app.js       shared header/footer, cart, wishlist and UI behaviour
+assets/js/demo-catalogs.js  sample catalogues used by the admin dashboard
 archive/               earlier prototype pages, kept for reference
 ```
 
 Cart, wishlist, theme and currency are stored in the browser's `localStorage`.
+
+## Admin dashboard
+
+Open `admin.html` (also linked in the footer). Changes are saved in the current browser only, so other visitors still see the catalogue in `products.js`. To make your edits permanent for everyone, use **Export JSON** and paste the result into `DEFAULT_PRODUCTS` in `assets/js/products.js`.
+
+Test catalogues:
+
+- **Full store** — 40 pieces across every universe and category
+- **Small boutique** — 4 pieces, to see how sparse pages look
+- **Stress test** — very long names, extreme prices, broken images and many sizes
+
+**Restore original catalogue** puts everything back.
+
+The dashboard has no login. This is a static site, so anyone who opens `admin.html` can edit the catalogue in their own browser, though only theirs. Real access control needs a backend.

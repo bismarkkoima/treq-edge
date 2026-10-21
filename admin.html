@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Admin Dashboard — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container admin">
+    <div class="page-title">
+      <span class="eyebrow">Admin</span>
+      <h1>Catalogue Dashboard</h1>
+      <p>Add, edit and remove products. Changes are saved in this browser and show up across the store immediately.</p>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="admin-panel">
+      <div class="admin-head">
+        <h2>Test catalogues</h2>
+        <p class="muted">Replace the current catalogue with sample data to see how the store looks and behaves.</p>
+      </div>
+      <div class="admin-actions" id="demo-buttons"></div>
+      <div class="admin-actions">
+        <button class="btn-line" id="reset">Restore original catalogue</button>
+        <button class="btn-line" id="clear">Remove all products</button>
+        <button class="btn-line" id="export">Export JSON</button>
+        <label class="btn-line">Import JSON<input type="file" accept="application/json" id="import" hidden></label>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <div class="admin-head row-head">
+        <h2>Products</h2>
+        <div class="admin-actions">
+          <input type="search" id="filter" placeholder="Filter products" aria-label="Filter products">
+          <button class="btn" id="new">+ Add product</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th></th><th>Name</th><th>Category</th><th>Universe</th><th>Gender</th><th>Price (KSh)</th><th>New</th><th></th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <aside class="drawer editor" id="editor-drawer">
+    <div class="drawer-head"><h2 id="editor-title">Add product</h2><button class="icon-btn" onclick="closeOverlays()" aria-label="Close editor">&times;</button></div>
+    <form class="drawer-body" id="editor">
+      <div class="preview" id="preview"></div>
+      <label>Name<input name="name" required maxlength="80"></label>
+      <div class="pair">
+        <label>Price (KSh)<input name="price" type="number" min="1" step="1" required></label>
+        <label>Gender<select name="gender"><option value="women">Women</option><option value="men">Men</option><option value="unisex">Unisex</option></select></label>
+      </div>
+      <div class="pair">
+        <label>Category<select name="category" id="category-select"></select></label>
+        <label>Universe<select name="universe" id="universe-select"></select></label>
+      </div>
+      <label>Image URL<input name="image" placeholder="https://…"></label>
+      <label>…or upload a photo<input type="file" accept="image/*" id="upload"></label>
+      <label>Sizes (comma separated)<input name="sizes" placeholder="S, M, L" required></label>
+      <label>Colours (comma separated)<input name="colors" placeholder="Black, Ivory" required></label>
+      <label>Description<textarea name="description" rows="4"></textarea></label>
+      <label class="check"><input type="checkbox" name="isNew"> Show in New In</label>
+      <div class="pair">
+        <button class="btn" type="submit">Save product</button>
+        <button class="btn-line" type="button" onclick="closeOverlays()">Cancel</button>
+      </div>
+    </form>
+  </aside>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/demo-catalogs.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    let editingId = null;
+    let uploadedImage = null;
+
+    function saveCatalog() {
+      store.set("catalog", PRODUCTS);
+      renderAdmin();
+    }
+
+    function replaceCatalog(items, message) {
+      PRODUCTS.splice(0, PRODUCTS.length, ...items);
+      saveCatalog();
+      toast(message);
+    }
+
+    function renderAdmin() {
+      const total = PRODUCTS.length;
+      const avg = total ? Math.round(PRODUCTS.reduce((s, p) => s + Number(p.price), 0) / total) : 0;
+      const perUniverse = Object.entries(UNIVERSES).map(([k, u]) =>
+        `${u.name} ${PRODUCTS.filter(p => p.universe === k).length}`).join(" · ");
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><span class="eyebrow">Products</span><strong>${total}</strong></div>
+        <div class="stat"><span class="eyebrow">New In</span><strong>${PRODUCTS.filter(p => p.isNew).length}</strong></div>
+        <div class="stat"><span class="eyebrow">Average price</span><strong>${formatPrice(avg)}</strong></div>
+        <div class="stat"><span class="eyebrow">By universe</span><p>${perUniverse}</p></div>`;
+
+      const q = document.getElementById("filter").value.trim().toLowerCase();
+      const rows = PRODUCTS.filter(p => !q || (p.name + " " + p.category + " " + p.universe).toLowerCase().includes(q));
+      document.getElementById("rows").innerHTML = rows.length ? rows.map(p => `
+        <tr>
+          <td><img src="${p.image}" alt="" onerror="imageFallback(this)"></td>
+          <td><a href="product.html?id=${encodeURIComponent(p.id)}" target="_blank">${escapeHtml(p.name)}</a></td>
+          <td>${CATEGORIES[p.category] || p.category}</td>
+          <td>${UNIVERSES[p.universe] ? UNIVERSES[p.universe].name : p.universe}</td>
+          <td>${p.gender}</td>
+          <td>${Number(p.price).toLocaleString("en-KE")}</td>
+          <td>${p.isNew ? "Yes" : ""}</td>
+          <td class="row-actions">
+            <button class="link-btn" data-edit="${escapeHtml(p.id)}">Edit</button>
+            <button class="link-btn danger" data-delete="${escapeHtml(p.id)}">Delete</button>
+          </td>
+        </tr>`).join("") :
+        `<tr><td colspan="8" class="muted" style="text-align:center;padding:40px">No products. Add one or load a test catalogue.</td></tr>`;
+    }
+
+    function splitList(text) {
+      return text.split(",").map(s => s.trim()).filter(Boolean);
+    }
+
+    function uniqueId(name) {
+      const base = slugify(name) || "product";
+      let id = base, n = 2;
+      while (PRODUCTS.some(p => p.id === id)) id = `${base}-${n++}`;
+      return id;
+    }
+
+    function updatePreview() {
+      const form = document.getElementById("editor");
+      const src = uploadedImage || form.image.value.trim();
+      document.getElementById("preview").innerHTML = src
+        ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(form.name.value || "Preview")}" onerror="imageFallback(this)">`
+        : `<div class="img-fallback">${escapeHtml((form.name.value || "?").slice(0, 2).toUpperCase())}</div>`;
+    }
+
+    function openEditor(product) {
+      const form = document.getElementById("editor");
+      form.reset();
+      editingId = product ? product.id : null;
+      uploadedImage = null;
+      document.getElementById("editor-title").textContent = product ? "Edit product" : "Add product";
+      if (product) {
+        form.name.value = product.name;
+        form.price.value = product.price;
+        form.gender.value = product.gender;
+        form.category.value = product.category;
+        form.universe.value = product.universe;
+        form.image.value = product.image.startsWith("data:") ? "" : product.image;
+        uploadedImage = product.image.startsWith("data:") ? product.image : null;
+        form.sizes.value = product.sizes.join(", ");
+        form.colors.value = product.colors.join(", ");
+        form.description.value = product.description;
+        form.isNew.checked = Boolean(product.isNew);
+      } else {
+        form.sizes.value = "S, M, L";
+        form.colors.value = "Black";
+      }
+      updatePreview();
+      openDrawer("editor-drawer");
+    }
+
+    // Shrink uploads so they fit comfortably in browser storage.
+    function readImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, 700 / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(img.src);
+          resolve(canvas.toDataURL("image/jpeg", 0.8));
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    document.getElementById("category-select").innerHTML =
+      Object.entries(CATEGORIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+    document.getElementById("universe-select").innerHTML =
+      Object.entries(UNIVERSES).map(([k, u]) => `<option value="${k}">${u.name}</option>`).join("");
+
+    document.getElementById("demo-buttons").innerHTML = Object.entries(DEMO_CATALOGS).map(([key, c]) =>
+      `<button class="btn" data-demo="${key}">Load: ${c.label}</button>`).join("");
+
+    document.getElementById("demo-buttons").addEventListener("click", e => {
+      const btn = e.target.closest("[data-demo]");
+      if (!btn) return;
+      const catalog = DEMO_CATALOGS[btn.dataset.demo];
+      if (confirm(`Replace the current catalogue with "${catalog.label}"?`)) {
+        replaceCatalog(catalog.build(), `${catalog.label} loaded`);
+      }
+    });
+
+    document.getElementById("reset").onclick = () => {
+      if (!confirm("Restore the original catalogue? Your edits will be lost.")) return;
+      try { localStorage.removeItem("catalog"); } catch (e) { /* ignore */ }
+      PRODUCTS.splice(0, PRODUCTS.length, ...DEFAULT_PRODUCTS.map(p => ({ ...p })));
+      renderAdmin();
+      toast("Original catalogue restored");
+    };
+
+    document.getElementById("clear").onclick = () => {
+      if (confirm("Remove every product from the store?")) replaceCatalog([], "All products removed");
+    };
+
+    document.getElementById("export").onclick = () => {
+      const blob = new Blob([JSON.stringify(PRODUCTS, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "treq-edge-catalogue.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById("import").onchange = async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const items = JSON.parse(await file.text());
+        if (!Array.isArray(items) || !items.every(p => p && p.id && p.name)) throw new Error();
+        replaceCatalog(items.map(normalizeProduct), `Imported ${items.length} products`);
+      } catch (err) {
+        toast("That file is not a valid catalogue");
+      }
+      e.target.value = "";
+    };
+
+    document.getElementById("filter").addEventListener("input", renderAdmin);
+    document.getElementById("new").onclick = () => openEditor(null);
+
+    document.getElementById("rows").addEventListener("click", e => {
+      const edit = e.target.closest("[data-edit]");
+      const del = e.target.closest("[data-delete]");
+      if (edit) openEditor(findProduct(edit.dataset.edit));
+      if (del) {
+        const product = findProduct(del.dataset.delete);
+        if (confirm(`Delete "${product.name}"?`)) {
+          PRODUCTS.splice(PRODUCTS.indexOf(product), 1);
+          saveCatalog();
+          toast(`${product.name} deleted`);
+        }
+      }
+    });
+
+    const form = document.getElementById("editor");
+    form.name.addEventListener("input", updatePreview);
+    form.image.addEventListener("input", () => { uploadedImage = null; updatePreview(); });
+    document.getElementById("upload").onchange = async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        uploadedImage = await readImage(file);
+        form.image.value = "";
+        updatePreview();
+      } catch (err) {
+        toast("Could not read that image");
+      }
+    };
+
+    form.onsubmit = e => {
+      e.preventDefault();
+      const data = {
+        name: form.name.value.trim(),
+        price: Math.round(Number(form.price.value)),
+        gender: form.gender.value,
+        category: form.category.value,
+        universe: form.universe.value,
+        image: uploadedImage || form.image.value.trim(),
+        sizes: splitList(form.sizes.value),
+        colors: splitList(form.colors.value),
+        description: form.description.value.trim(),
+        isNew: form.isNew.checked
+      };
+      const backup = PRODUCTS.map(p => ({ ...p }));
+      if (editingId) {
+        Object.assign(findProduct(editingId), data);
+      } else {
+        PRODUCTS.unshift({ id: uniqueId(data.name), ...data });
+      }
+      try {
+        localStorage.setItem("catalog", JSON.stringify(PRODUCTS));
+      } catch (err) {
+        PRODUCTS.splice(0, PRODUCTS.length, ...backup);
+        toast("Browser storage is full — use smaller images or an image URL");
+        return;
+      }
+      renderAdmin();
+      closeOverlays();
+      toast(`${data.name} saved`);
+    };
+
+    renderAdmin();
+  </script>
+</body>
+</html>
