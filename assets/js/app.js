@@ -284,7 +284,7 @@ function renderLayout() {
   if (!store.get("cookies-ok", false)) {
     const cookie = document.createElement("div");
     cookie.className = "cookie";
-    cookie.innerHTML = `<p>We use cookies and local storage to remember your bag, wishlist and preferences.</p>
+    cookie.innerHTML = `<p>We use cookies to remember your bag, wishlist and preferences.</p>
       <button class="btn">Accept</button>`;
     cookie.querySelector("button").onclick = () => { store.set("cookies-ok", true); cookie.remove(); };
     document.body.append(cookie);
@@ -421,6 +421,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const onScroll = () => {
     header.classList.toggle("solid", window.scrollY > 40);
     toTop.classList.toggle("show", window.scrollY > 600);
+    // Keep the cookie notice from covering content while the visitor reads.
+    document.querySelector(".cookie")?.classList.toggle("tucked", window.scrollY > 120);
   };
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
