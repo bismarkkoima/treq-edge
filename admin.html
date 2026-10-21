@@ -97,13 +97,20 @@
     function renderAdmin() {
       const total = PRODUCTS.length;
       const avg = total ? Math.round(PRODUCTS.reduce((s, p) => s + Number(p.price), 0) / total) : 0;
+      const analytics = allowed("analytics") ? store.get("analytics", { total: 0, pages: {} }) : null;
+      const topPages = analytics ? Object.entries(analytics.pages).sort((a, b) => b[1] - a[1]).slice(0, 3)
+        .map(([page, n]) => `${page.replace(".html", "")} ${n}`).join(" · ") : "";
       const perUniverse = Object.entries(UNIVERSES).map(([k, u]) =>
         `${u.name} ${PRODUCTS.filter(p => p.universe === k).length}`).join(" · ");
       document.getElementById("stats").innerHTML = `
         <div class="stat"><span class="eyebrow">Products</span><strong>${total}</strong></div>
         <div class="stat"><span class="eyebrow">New In</span><strong>${PRODUCTS.filter(p => p.isNew).length}</strong></div>
         <div class="stat"><span class="eyebrow">Average price</span><strong>${formatPrice(avg)}</strong></div>
-        <div class="stat"><span class="eyebrow">By universe</span><p>${perUniverse}</p></div>`;
+        <div class="stat"><span class="eyebrow">By universe</span><p>${perUniverse}</p></div>
+        <div class="stat"><span class="eyebrow">Accounts (this browser)</span><strong>${Object.keys(auth.users()).length}</strong></div>
+        <div class="stat"><span class="eyebrow">Page views</span>${analytics
+          ? `<strong>${analytics.total}</strong><p>${topPages}</p>`
+          : `<p>Analytics cookies are off. <button class="link-btn" onclick="openCookieSettings()">Turn on</button></p>`}</div>`;
 
       const q = document.getElementById("filter").value.trim().toLowerCase();
       const rows = PRODUCTS.filter(p => !q || (p.name + " " + p.category + " " + p.universe).toLowerCase().includes(q));

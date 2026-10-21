@@ -16,6 +16,159 @@ const store = {
   }
 };
 
+/* ---------- Cookie consent ---------- */
+
+// Essential storage (bag, wishlist, sign-in) is always on. The optional
+// categories below only keep data between visits once the visitor agrees.
+const CONSENT_CATEGORIES = {
+  preferences: {
+    label: "Preferences",
+    text: "Remember your theme, currency and recently viewed pieces between visits."
+  },
+  analytics: {
+    label: "Analytics",
+    text: "Count page visits anonymously in this browser so we can see which pages people enjoy."
+  }
+};
+const PREFERENCE_KEYS = ["theme", "currency", "recent"];
+
+function getConsent() {
+  return store.get("consent", null);
+}
+
+function allowed(category) {
+  const consent = getConsent();
+  return Boolean(consent && consent[category]);
+}
+
+function setConsent(choices) {
+  const wasAllowed = allowed("preferences");
+  store.set("consent", { ...choices, decidedAt: new Date().toISOString() });
+  try {
+    // Move preference data to wherever it now belongs.
+    PREFERENCE_KEYS.forEach(key => {
+      const from = wasAllowed ? localStorage : sessionStorage;
+      const to = choices.preferences ? localStorage : sessionStorage;
+      const value = from.getItem(key);
+      if (from !== to && value !== null) {
+        to.setItem(key, value);
+        from.removeItem(key);
+      }
+    });
+    if (!choices.analytics) localStorage.removeItem("analytics");
+  } catch (e) { /* storage unavailable */ }
+  document.querySelector(".cookie")?.remove();
+}
+
+// Preferences persist across visits only with consent; otherwise they last
+// for this browser tab session.
+const prefs = {
+  area() {
+    return allowed("preferences") ? localStorage : sessionStorage;
+  },
+  get(key, fallback) {
+    try {
+      const value = JSON.parse(this.area().getItem(key));
+      return value ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      this.area().setItem(key, JSON.stringify(value));
+    } catch (e) { /* storage unavailable */ }
+  }
+};
+
+function trackPageView() {
+  if (!allowed("analytics")) return;
+  const stats = store.get("analytics", { total: 0, pages: {} });
+  const page = location.pathname.split("/").pop() || "index.html";
+  stats.total += 1;
+  stats.pages[page] = (stats.pages[page] || 0) + 1;
+  store.set("analytics", stats);
+}
+
+function rememberViewed(id) {
+  const recent = prefs.get("recent", []).filter(x => x !== id);
+  recent.unshift(id);
+  prefs.set("recent", recent.slice(0, 8));
+}
+
+/* ---------- Accounts ---------- */
+
+// Accounts are kept in this browser only — a stand-in until the store has a
+// backend. Passwords are stored as salted SHA-256 hashes, never as plain text.
+async function hashPassword(email, password) {
+  const data = new TextEncoder().encode(email + ":" + password);
+  if (window.crypto && crypto.subtle) {
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  let h = 0;
+  for (const b of data) h = (h * 31 + b) >>> 0;
+  return "x" + h.toString(16);
+}
+
+const auth = {
+  users() {
+    return store.get("users", {});
+  },
+  current() {
+    const email = store.get("session", null);
+    return email ? this.users()[email] || null : null;
+  },
+  save(user) {
+    const users = this.users();
+    users[user.email] = user;
+    store.set("users", users);
+  },
+  async register({ name, email, password }) {
+    email = email.trim().toLowerCase();
+    if (this.users()[email]) throw new Error("An account with this email already exists.");
+    if (password.length < 8) throw new Error("Your password needs at least 8 characters.");
+    const user = {
+      name: name.trim(), email,
+      passHash: await hashPassword(email, password),
+      phone: "", address: "", city: "", size: "", universe: "",
+      newsletter: false, orders: [], createdAt: new Date().toISOString()
+    };
+    this.save(user);
+    store.set("session", email);
+    return user;
+  },
+  async signIn(email, password) {
+    email = email.trim().toLowerCase();
+    const user = this.users()[email];
+    if (!user || user.passHash !== await hashPassword(email, password)) {
+      throw new Error("That email and password don't match an account.");
+    }
+    store.set("session", email);
+    return user;
+  },
+  signOut() {
+    store.set("session", null);
+  },
+  update(changes) {
+    const user = { ...this.current(), ...changes };
+    this.save(user);
+    return user;
+  },
+  async changePassword(currentPassword, nextPassword) {
+    const user = this.current();
+    if (user.passHash !== await hashPassword(user.email, currentPassword)) throw new Error("Your current password is incorrect.");
+    if (nextPassword.length < 8) throw new Error("Your new password needs at least 8 characters.");
+    this.update({ passHash: await hashPassword(user.email, nextPassword) });
+  },
+  remove() {
+    const users = this.users();
+    delete users[store.get("session", null)];
+    store.set("users", users);
+    this.signOut();
+  }
+};
+
 const USD_RATE = 129; // KES per USD, indicative only
 
 const ICONS = {
@@ -96,7 +249,7 @@ function toggleWishlist(id) {
 /* ---------- Formatting ---------- */
 
 function formatPrice(kes) {
-  if (store.get("currency", "KES") === "USD") {
+  if (prefs.get("currency", "KES") === "USD") {
     return "$" + (kes / USD_RATE).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   return "KSh " + kes.toLocaleString("en-KE");
@@ -159,7 +312,7 @@ function renderLayout() {
     <div class="header-right">
       <a class="icon-btn hide-sm" href="contact.html" aria-label="Contact us">${ICONS.phone}</a>
       <a class="icon-btn" href="wishlist.html" aria-label="Wishlist">${ICONS.heart}<span class="count" id="wish-count"></span></a>
-      <button class="icon-btn hide-sm" onclick="openDrawer('account-drawer')" aria-label="Account">${ICONS.user}</button>
+      <button class="icon-btn" onclick="openDrawer('account-drawer')" aria-label="Account">${ICONS.user}</button>
       <button class="icon-btn" onclick="openDrawer('bag-drawer')" aria-label="Shopping bag">${ICONS.bag}<span class="count" id="cart-count"></span></button>
     </div>`;
 
@@ -188,6 +341,7 @@ function renderLayout() {
         <a href="stores.html">Store locator</a>
         <a href="contact.html">Contact an advisor</a>
         <a href="help.html">Help &amp; FAQs</a>
+        <a href="account.html">My account</a>
         <a href="wishlist.html">My wishlist</a>
         <a href="cart.html">Shopping bag</a>
       </div>
@@ -225,6 +379,17 @@ function renderLayout() {
     <div class="drawer-head"><h2>My account</h2><button class="icon-btn" onclick="closeOverlays()" aria-label="Close account">${ICONS.close}</button></div>
     <div class="drawer-body" id="account-body"></div>`;
 
+  const cookieDrawer = document.createElement("aside");
+  cookieDrawer.className = "drawer";
+  cookieDrawer.id = "cookie-drawer";
+  cookieDrawer.innerHTML = `
+    <div class="drawer-head"><h2>Cookie settings</h2><button class="icon-btn" onclick="closeOverlays()" aria-label="Close cookie settings">${ICONS.close}</button></div>
+    <form class="drawer-body" id="cookie-form"></form>
+    <div class="drawer-foot">
+      <button class="btn" type="submit" form="cookie-form">Save my choices</button>
+      <button class="btn-line" type="button" onclick="setConsent({ preferences: true, analytics: true }); closeOverlays(); toast('All cookies accepted');">Accept all</button>
+    </div>`;
+
   const scrim = document.createElement("div");
   scrim.className = "scrim";
   scrim.onclick = closeOverlays;
@@ -239,6 +404,8 @@ function renderLayout() {
         <a href="help.html">FAQs</a>
         <a href="help.html#shipping">Shipping &amp; returns</a>
         <a href="stores.html">Store locator</a>
+        <a href="account.html">My account</a>
+        <button class="link-btn footer-link" onclick="openCookieSettings()">Cookie settings</button>
       </div>
       <div>
         <p class="eyebrow">The company</p>
@@ -280,16 +447,49 @@ function renderLayout() {
   toastEl.id = "toast";
 
   document.body.prepend(announce, header);
-  document.body.append(footer, menu, search, bag, account, scrim, toTop, toastEl);
+  document.body.append(footer, menu, search, bag, account, cookieDrawer, scrim, toTop, toastEl);
 
-  if (!store.get("cookies-ok", false)) {
+  if (!getConsent()) {
     const cookie = document.createElement("div");
     cookie.className = "cookie";
-    cookie.innerHTML = `<p>We use cookies to remember your bag, wishlist and preferences.</p>
-      <button class="btn">Accept</button>`;
-    cookie.querySelector("button").onclick = () => { store.set("cookies-ok", true); cookie.remove(); };
+    cookie.innerHTML = `
+      <p>We use essential cookies to run your bag and account. Optional cookies are only used if you agree.
+        <button class="link-btn" data-cookie="manage">Manage</button></p>
+      <div class="cookie-actions">
+        <button class="btn-line" data-cookie="reject">Reject optional</button>
+        <button class="btn" data-cookie="accept">Accept all</button>
+      </div>`;
+    cookie.addEventListener("click", e => {
+      const action = e.target.closest("[data-cookie]")?.dataset.cookie;
+      if (action === "accept") setConsent({ preferences: true, analytics: true });
+      if (action === "reject") setConsent({ preferences: false, analytics: false });
+      if (action === "manage") openCookieSettings();
+    });
     document.body.append(cookie);
   }
+}
+
+function openCookieSettings() {
+  const consent = getConsent() || {};
+  const form = document.getElementById("cookie-form");
+  form.innerHTML = `
+    <p class="muted">Choose which optional cookies we may use. You can change this at any time from the footer.</p>
+    <label class="consent-row">
+      <div><strong>Essential</strong><p class="muted">Keep your shopping bag, wishlist and sign-in working. Always on.</p></div>
+      <input type="checkbox" checked disabled>
+    </label>
+    ${Object.entries(CONSENT_CATEGORIES).map(([key, c]) => `
+      <label class="consent-row">
+        <div><strong>${c.label}</strong><p class="muted">${c.text}</p></div>
+        <input type="checkbox" name="${key}" ${consent[key] ? "checked" : ""}>
+      </label>`).join("")}`;
+  form.onsubmit = e => {
+    e.preventDefault();
+    setConsent(Object.fromEntries(Object.keys(CONSENT_CATEGORIES).map(key => [key, form.elements[key].checked])));
+    closeOverlays();
+    toast("Your cookie choices have been saved");
+  };
+  openDrawer("cookie-drawer");
 }
 
 function renderBagDrawer() {
@@ -314,27 +514,44 @@ function renderBagDrawer() {
 
 function renderAccount() {
   const body = document.getElementById("account-body");
-  const user = store.get("user", null);
+  const user = auth.current();
   if (user) {
     body.innerHTML = `<p>Welcome back, <strong>${escapeHtml(user.name)}</strong>.</p>
       <p class="muted">${escapeHtml(user.email)}</p>
+      <a class="btn" href="account.html">My account</a>
+      <a class="btn-line" href="account.html#orders">My orders (${user.orders.length})</a>
       <a class="btn-line" href="wishlist.html">My wishlist (${wishlist.length})</a>
-      <a class="btn-line" href="cart.html">My bag (${cartQuantity()})</a>
+      <a class="btn-line" href="account.html#profile">Profile &amp; addresses</a>
       <button class="link-btn" id="sign-out">Sign out</button>`;
-    body.querySelector("#sign-out").onclick = () => { store.set("user", null); renderAccount(); };
+    body.querySelector("#sign-out").onclick = () => {
+      auth.signOut();
+      updateCounts();
+      renderAccount();
+      toast("You have been signed out");
+      document.dispatchEvent(new CustomEvent("auth:change"));
+    };
   } else {
-    body.innerHTML = `<p class="muted">Sign in to save your details for faster checkout.</p>
+    body.innerHTML = `<p class="muted">Sign in for faster checkout, order history and saved details.</p>
       <form class="stack" id="sign-in">
-        <input name="name" required placeholder="Full name">
-        <input name="email" type="email" required placeholder="Email address">
+        <input name="email" type="email" required placeholder="Email address" autocomplete="email">
+        <input name="password" type="password" required placeholder="Password" autocomplete="current-password">
+        <p class="form-error" id="sign-in-error"></p>
         <button class="btn" type="submit">Sign in</button>
-      </form>`;
-    body.querySelector("#sign-in").onsubmit = e => {
+      </form>
+      <p class="muted">New to Treq Edge?</p>
+      <a class="btn-line" href="account.html#register">Create an account</a>`;
+    body.querySelector("#sign-in").onsubmit = async e => {
       e.preventDefault();
       const data = new FormData(e.target);
-      store.set("user", { name: data.get("name"), email: data.get("email") });
-      renderAccount();
-      toast("Signed in");
+      try {
+        const user = await auth.signIn(data.get("email"), data.get("password"));
+        updateCounts();
+        renderAccount();
+        toast(`Welcome back, ${user.name}`);
+        document.dispatchEvent(new CustomEvent("auth:change"));
+      } catch (err) {
+        document.getElementById("sign-in-error").textContent = err.message;
+      }
     };
   }
 }
@@ -344,6 +561,8 @@ function updateCounts() {
   const w = document.getElementById("wish-count");
   if (c) c.textContent = cartQuantity() || "";
   if (w) w.textContent = wishlist.length || "";
+  const accountBtn = document.querySelector('[aria-label="Account"]');
+  if (accountBtn) accountBtn.classList.toggle("signed-in", Boolean(auth.current()));
 }
 
 /* ---------- Overlays ---------- */
@@ -380,11 +599,11 @@ function toast(message) {
 /* ---------- Theme & universe ---------- */
 
 function applyTheme() {
-  document.documentElement.dataset.theme = store.get("theme", "light");
+  document.documentElement.dataset.theme = prefs.get("theme", "light");
 }
 
 function toggleTheme() {
-  store.set("theme", store.get("theme", "light") === "dark" ? "light" : "dark");
+  prefs.set("theme", prefs.get("theme", "light") === "dark" ? "light" : "dark");
   applyTheme();
 }
 
@@ -402,11 +621,12 @@ applyTheme();
 document.addEventListener("DOMContentLoaded", () => {
   renderLayout();
   updateCounts();
+  trackPageView();
   renderBagDrawer();
 
   const currency = document.getElementById("currency-select");
-  currency.value = store.get("currency", "KES");
-  currency.onchange = () => { store.set("currency", currency.value); location.reload(); };
+  currency.value = prefs.get("currency", "KES");
+  currency.onchange = () => { prefs.set("currency", currency.value); location.reload(); };
 
   const searchInput = document.getElementById("search-input");
   searchInput.addEventListener("input", () => {

@@ -35,6 +35,7 @@
       const discount = promo ? Math.round(subtotal * PROMOS[promo]) : 0;
       const delivery = deliveryFee(subtotal);
       const total = subtotal - discount + delivery;
+      const user = auth.current();
 
       root.innerHTML = `
         <div class="cart-layout">
@@ -74,9 +75,11 @@
 
             <form class="stack" id="checkout">
               <span class="eyebrow">Delivery details</span>
-              <input name="name" required placeholder="Full name">
-              <input name="phone" required placeholder="Phone e.g. 07XX XXX XXX" pattern="^(\\+?254|0)[17]\\d{8}$" title="Enter a valid Kenyan mobile number">
-              <input name="address" required placeholder="Delivery address">
+              ${user ? `<p class="muted" style="font-size:13px">Signed in as ${escapeHtml(user.email)} — details filled from your profile.</p>`
+                : `<p class="muted" style="font-size:13px"><a class="link-btn" href="account.html">Sign in</a> to fill these in and save this order to your account.</p>`}
+              <input name="name" required placeholder="Full name" value="${escapeHtml(user ? user.name : "")}">
+              <input name="phone" required placeholder="Phone e.g. 07XX XXX XXX" pattern="^(\\+?254|0)[17]\\d{8}$" title="Enter a valid Kenyan mobile number" value="${escapeHtml(user ? user.phone : "")}">
+              <input name="address" required placeholder="Delivery address" value="${escapeHtml(user ? [user.address, user.city].filter(Boolean).join(", ") : "")}">
               <span class="eyebrow">Payment</span>
               <div class="pay-options">
                 <label class="pay-option"><input type="radio" name="pay" value="M-Pesa" checked> M-Pesa</label>
@@ -107,6 +110,18 @@
         e.preventDefault();
         const data = new FormData(e.target);
         const order = "TE" + Date.now().toString().slice(-6);
+        if (user) {
+          auth.update({
+            orders: [{
+              id: order,
+              date: new Date().toISOString(),
+              status: "Processing",
+              payment: data.get("pay"),
+              total,
+              items: cart.map(({ id, name, image, size, quantity, price }) => ({ id, name, image, size, quantity, price }))
+            }, ...user.orders]
+          });
+        }
         cart = [];
         promo = null;
         store.set("promo", null);
@@ -116,7 +131,10 @@
             <span class="eyebrow">Order ${order}</span>
             <h2 style="font-size:40px">Thank you, ${escapeHtml(data.get("name"))}</h2>
             <p class="muted">A ${escapeHtml(data.get("pay"))} payment request for ${formatPrice(total)} has been sent to ${escapeHtml(data.get("phone"))}.<br>Your pieces will arrive within two days.</p>
-            <a class="btn" href="shop.html">Continue shopping</a>
+            <div class="hero-actions">
+              ${user ? `<a class="btn-line" href="account.html#orders">View my orders</a>` : ""}
+              <a class="btn" href="shop.html">Continue shopping</a>
+            </div>
           </div>`;
       };
     }

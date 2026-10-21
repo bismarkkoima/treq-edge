@@ -29,6 +29,7 @@
       const universe = UNIVERSES[product.universe];
       let selectedSize = product.sizes.length === 1 ? product.sizes[0] : null;
       setUniverse(product.universe);
+      rememberViewed(product.id);
       document.title = `${product.name} — Treq Edge`;
 
       document.getElementById("pdp-root").innerHTML = `

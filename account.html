@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-title">
+      <span class="eyebrow" id="account-eyebrow">My account</span>
+      <h1 id="account-title">Welcome</h1>
+    </div>
+    <div id="account-root"></div>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const SECTIONS = {
+      overview: "Overview",
+      orders: "Orders",
+      profile: "Profile",
+      preferences: "Preferences",
+      security: "Security"
+    };
+
+    function renderAuthForms(mode) {
+      document.getElementById("account-eyebrow").textContent = "My account";
+      document.getElementById("account-title").textContent = mode === "register" ? "Create an Account" : "Sign In";
+      document.getElementById("account-root").innerHTML = `
+        <div class="auth-wrap">
+          <div class="tabs">
+            <a class="tab ${mode === "register" ? "" : "active"}" href="#signin">Sign in</a>
+            <a class="tab ${mode === "register" ? "active" : ""}" href="#register">Create account</a>
+          </div>
+          ${mode === "register" ? `
+            <form class="stack" id="register-form">
+              <label>Full name<input name="name" required autocomplete="name"></label>
+              <label>Email<input name="email" type="email" required autocomplete="email"></label>
+              <label>Password<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+              <p class="form-error" id="auth-error"></p>
+              <button class="btn" type="submit">Create account</button>
+              <p class="muted" style="font-size:13px">Your account is stored in this browser only.</p>
+            </form>` : `
+            <form class="stack" id="signin-form">
+              <label>Email<input name="email" type="email" required autocomplete="email"></label>
+              <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
+              <p class="form-error" id="auth-error"></p>
+              <button class="btn" type="submit">Sign in</button>
+            </form>`}
+          <div class="services" style="margin-top:48px">
+            <div><h3>Order history</h3><p>Track every purchase in one place.</p></div>
+            <div><h3>Faster checkout</h3><p>Your delivery details, filled in for you.</p></div>
+          </div>
+        </div>`;
+
+      const form = document.getElementById(mode === "register" ? "register-form" : "signin-form");
+      form.onsubmit = async e => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form));
+        try {
+          const user = mode === "register" ? await auth.register(data) : await auth.signIn(data.email, data.password);
+          toast(mode === "register" ? `Welcome to Treq Edge, ${user.name}` : `Welcome back, ${user.name}`);
+          updateCounts();
+          location.hash = "overview";
+          render();
+        } catch (err) {
+          document.getElementById("auth-error").textContent = err.message;
+        }
+      };
+    }
+
+    function orderCard(order) {
+      return `
+        <div class="order">
+          <div class="order-head">
+            <div><strong>Order ${escapeHtml(order.id)}</strong><p class="muted">${new Date(order.date).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })} · ${escapeHtml(order.payment)}</p></div>
+            <div style="text-align:right"><span class="status">${escapeHtml(order.status)}</span><p style="margin-top:6px">${formatPrice(order.total)}</p></div>
+          </div>
+          <div class="order-items">
+            ${order.items.map(i => `<a href="product.html?id=${encodeURIComponent(i.id)}" title="${escapeHtml(i.name)} × ${i.quantity}"><img src="${i.image}" alt="${escapeHtml(i.name)}" onerror="imageFallback(this)"></a>`).join("")}
+          </div>
+          <p class="muted" style="font-size:13px">${order.items.map(i => `${escapeHtml(i.name)} (${escapeHtml(i.size)}) × ${i.quantity}`).join(", ")}</p>
+        </div>`;
+    }
+
+    function renderDashboard(user, section) {
+      document.getElementById("account-eyebrow").textContent = `Member since ${new Date(user.createdAt).toLocaleDateString("en-KE", { month: "long", year: "numeric" })}`;
+      document.getElementById("account-title").textContent = `Hello, ${user.name.split(" ")[0]}`;
+
+      const recent = prefs.get("recent", []).map(findProduct).filter(Boolean);
+      const picks = PRODUCTS.filter(p => !user.universe || p.universe === user.universe).slice(0, 4);
+      const saved = wishlist.map(findProduct).filter(Boolean);
+
+      document.getElementById("account-root").innerHTML = `
+        <div class="account-layout">
+          <nav class="account-nav">
+            ${Object.entries(SECTIONS).map(([k, v]) => `<a href="#${k}" class="${k === section ? "active" : ""}">${v}</a>`).join("")}
+            <a href="wishlist.html">Wishlist (${wishlist.length})</a>
+            <button id="account-sign-out">Sign out</button>
+          </nav>
+
+          <div>
+            <section class="account-section ${section === "overview" ? "active" : ""}">
+              <div class="stats">
+                <div class="stat"><span class="eyebrow">Orders</span><strong>${user.orders.length}</strong></div>
+                <div class="stat"><span class="eyebrow">Wishlist</span><strong>${wishlist.length}</strong></div>
+                <div class="stat"><span class="eyebrow">Bag</span><strong>${cartQuantity()}</strong></div>
+              </div>
+              ${user.orders.length ? `<h2>Latest order</h2>${orderCard(user.orders[0])}` : `<p class="muted">You haven't placed an order yet.</p>`}
+              <h2>${user.universe ? `Picked for you from ${UNIVERSES[user.universe].name}` : "Picked for you"}</h2>
+              <div class="grid">${picks.map(productCard).join("")}</div>
+              ${recent.length ? `<h2>Recently viewed</h2><div class="rail">${recent.map(productCard).join("")}</div>` : ""}
+            </section>
+
+            <section class="account-section ${section === "orders" ? "active" : ""}">
+              <h2>Order history</h2>
+              ${user.orders.length ? user.orders.map(orderCard).join("") :
+                `<div class="empty"><p>No orders yet.</p><a class="btn" href="shop.html">Start shopping</a></div>`}
+            </section>
+
+            <section class="account-section ${section === "profile" ? "active" : ""}">
+              <h2>Profile &amp; delivery</h2>
+              <p class="muted">These details fill in automatically at checkout.</p>
+              <form class="form-grid" id="profile-form">
+                <label>Full name<input name="name" required value="${escapeHtml(user.name)}"></label>
+                <label>Email<input value="${escapeHtml(user.email)}" disabled></label>
+                <label>Phone<input name="phone" value="${escapeHtml(user.phone)}" placeholder="07XX XXX XXX"></label>
+                <label>City<input name="city" value="${escapeHtml(user.city || "")}" placeholder="Nairobi"></label>
+                <label class="full">Delivery address<input name="address" value="${escapeHtml(user.address)}" placeholder="Street, building, apartment"></label>
+                <button class="btn" type="submit">Save profile</button>
+              </form>
+            </section>
+
+            <section class="account-section ${section === "preferences" ? "active" : ""}">
+              <h2>Style &amp; communication</h2>
+              <form class="form-grid" id="prefs-form">
+                <label>Usual size<select name="size">
+                  ${["", "XS", "S", "M", "L", "XL"].map(s => `<option value="${s}" ${user.size === s ? "selected" : ""}>${s || "Not set"}</option>`).join("")}
+                </select></label>
+                <label>Favourite universe<select name="universe">
+                  <option value="">No favourite</option>
+                  ${Object.entries(UNIVERSES).map(([k, u]) => `<option value="${k}" ${user.universe === k ? "selected" : ""}>${u.name}</option>`).join("")}
+                </select></label>
+                <label class="check full"><input type="checkbox" name="newsletter" ${user.newsletter ? "checked" : ""}> Email me about new drops and private events</label>
+                <button class="btn" type="submit">Save preferences</button>
+              </form>
+              <div class="order">
+                <strong>Cookies &amp; privacy</strong>
+                <p class="muted">Preferences cookies: ${allowed("preferences") ? "on" : "off"} · Analytics cookies: ${allowed("analytics") ? "on" : "off"}</p>
+                <button class="btn-line" style="justify-self:start" onclick="openCookieSettings()">Manage cookie settings</button>
+              </div>
+            </section>
+
+            <section class="account-section ${section === "security" ? "active" : ""}">
+              <h2>Security</h2>
+              <form class="form-grid" id="password-form">
+                <label class="full">Current password<input name="current" type="password" required autocomplete="current-password"></label>
+                <label class="full">New password<input name="next" type="password" required minlength="8" autocomplete="new-password"></label>
+                <p class="form-error full" id="password-error"></p>
+                <button class="btn" type="submit">Change password</button>
+              </form>
+              <div class="order">
+                <strong>Delete account</strong>
+                <p class="muted">Permanently removes your profile and order history from this browser.</p>
+                <button class="btn-line danger" style="justify-self:start" id="delete-account">Delete my account</button>
+              </div>
+            </section>
+          </div>
+        </div>`;
+
+      document.getElementById("account-sign-out").onclick = () => {
+        auth.signOut();
+        updateCounts();
+        toast("You have been signed out");
+        location.hash = "signin";
+      };
+
+      document.getElementById("profile-form").onsubmit = e => {
+        e.preventDefault();
+        auth.update(Object.fromEntries(new FormData(e.target)));
+        toast("Profile saved");
+        render();
+      };
+
+      document.getElementById("prefs-form").onsubmit = e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        auth.update({ size: data.get("size"), universe: data.get("universe"), newsletter: data.get("newsletter") === "on" });
+        toast("Preferences saved");
+        render();
+      };
+
+      document.getElementById("password-form").onsubmit = async e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        try {
+          await auth.changePassword(data.get("current"), data.get("next"));
+          e.target.reset();
+          toast("Password changed");
+        } catch (err) {
+          document.getElementById("password-error").textContent = err.message;
+        }
+      };
+
+      document.getElementById("delete-account").onclick = () => {
+        if (!confirm("Delete your account? This cannot be undone.")) return;
+        auth.remove();
+        updateCounts();
+        toast("Your account has been deleted");
+        location.hash = "register";
+      };
+    }
+
+    function render() {
+      const user = auth.current();
+      const hash = location.hash.slice(1);
+      if (user) {
+        renderDashboard(user, SECTIONS[hash] ? hash : "overview");
+      } else {
+        renderAuthForms(hash === "register" ? "register" : "signin");
+      }
+      window.scrollTo(0, 0);
+    }
+
+    window.addEventListener("hashchange", render);
+    document.addEventListener("auth:change", render);
+    render();
+  </script>
+</body>
+</html>

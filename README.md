@@ -14,9 +14,10 @@ A luxury fashion storefront built with plain HTML, CSS and JavaScript — no bui
 | `wishlist.html` | Saved pieces |
 | `stores.html` | Store locator that sorts boutiques by distance from your location |
 | `contact.html` / `help.html` | Client services and searchable FAQs |
+| `account.html` | Sign up / sign in, profile and delivery details, order history, style preferences, recently viewed, password change and account deletion |
 | `admin.html` | Catalogue dashboard: add, edit and delete products, load test catalogues, import / export JSON |
 
-Shared features on every page: announcement ticker, full-screen menu, live search overlay, slide-out shopping bag and account drawers, KSh / USD currency switch, light / dark theme, cookie notice and back-to-top.
+Shared features on every page: announcement ticker, full-screen menu, live search overlay, slide-out shopping bag and account drawers, KSh / USD currency switch, light / dark theme, cookie consent and back-to-top.
 
 ## Structure
 
@@ -28,7 +29,19 @@ assets/js/demo-catalogs.js  sample catalogues used by the admin dashboard
 archive/               earlier prototype pages, kept for reference
 ```
 
-Cart, wishlist, theme and currency are stored in the browser's `localStorage`.
+Cart, wishlist and accounts are stored in the browser's `localStorage`.
+
+## Cookies
+
+Visitors choose with **Accept all**, **Reject optional** or **Manage** (and can change their mind later via *Cookie settings* in the footer):
+
+- **Essential** — bag, wishlist and sign-in. Always on.
+- **Preferences** — theme, currency and recently viewed pieces are remembered between visits. When off, they last only for the current tab session.
+- **Analytics** — anonymous page-view counts, shown in the admin dashboard. When off, nothing is recorded and existing counts are deleted.
+
+## Accounts
+
+Accounts are a front-end stand-in until the store has a backend: they live in the visitor's own browser, and passwords are kept as salted SHA-256 hashes rather than plain text. Signed-in shoppers get checkout filled in from their profile, and their orders are saved to *My account → Orders*. Moving to real accounts (shared across devices, with proper security) needs a server and database.
 
 ## Admin dashboard
 
