@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help &amp; FAQs — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-title">
+      <span class="eyebrow">Help centre</span>
+      <h1>Frequently Asked Questions</h1>
+      <input type="search" id="faq-search" placeholder="Search help topics" style="max-width:480px;margin:24px auto 0;display:block">
+    </div>
+
+    <div class="faq-wrap" id="faq">
+      <h2>Orders</h2>
+      <details><summary>How do I place an order?</summary><p>Browse the collection, choose your size, add pieces to your shopping bag and proceed to checkout.</p></details>
+      <details><summary>Can I save items for later?</summary><p>Yes — tap the heart on any piece to add it to your wishlist. It stays saved on this device.</p></details>
+      <details><summary>Do you offer promo codes?</summary><p>Subscribers receive exclusive codes. Enter yours in the order summary on the shopping bag page.</p></details>
+
+      <h2>Payment</h2>
+      <details><summary>What payment methods do you accept?</summary><p>We accept M-Pesa, Airtel Money and credit or debit cards.</p></details>
+      <details><summary>Can I shop in US dollars?</summary><p>Yes. Switch currency in the footer settings; prices are shown at an indicative exchange rate and charged in KSh.</p></details>
+
+      <h2 id="shipping">Shipping &amp; returns</h2>
+      <details><summary>How long does shipping take?</summary><p>Shipping takes 2 days within Kenya. Delivery is complimentary in Nairobi on orders over KSh 5,000.</p></details>
+      <details><summary>Can I return an item?</summary><p>Yes, you can return items within 7 days if they are in their original condition.</p></details>
+
+      <h2>Client services</h2>
+      <details><summary>How do I contact customer support?</summary><p>Email support@treqstore.com, call +254 724 398 102, or message us on WhatsApp from the <a class="link-btn" href="contact.html">contact page</a>.</p></details>
+      <details><summary>Can I book an in-store appointment?</summary><p>Yes — use the <a class="link-btn" href="stores.html">store locator</a> to find your nearest boutique.</p></details>
+    </div>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.getElementById("faq-search").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll("#faq details").forEach(d => {
+        const match = d.textContent.toLowerCase().includes(q);
+        d.style.display = match ? "" : "none";
+        d.open = Boolean(q) && match;
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Bag — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-title">
+      <span class="eyebrow">Review your selection</span>
+      <h1>Shopping Bag</h1>
+    </div>
+    <div id="cart-root"></div>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const PROMOS = { EDGE10: 0.10, MULTIVERSE: 0.15 };
+    let promo = store.get("promo", null);
+
+    function deliveryFee(subtotal) {
+      return subtotal === 0 || subtotal >= 5000 ? 0 : 300;
+    }
+
+    function renderCart() {
+      const root = document.getElementById("cart-root");
+      if (!cart.length) {
+        root.innerHTML = `<div class="empty"><p>Your shopping bag is empty.</p><a class="btn" href="shop.html">Continue shopping</a></div>`;
+        return;
+      }
+      const subtotal = cartSubtotal();
+      const discount = promo ? Math.round(subtotal * PROMOS[promo]) : 0;
+      const delivery = deliveryFee(subtotal);
+      const total = subtotal - discount + delivery;
+
+      root.innerHTML = `
+        <div class="cart-layout">
+          <div>
+            ${cart.map((item, i) => `
+              <div class="cart-row">
+                <a href="product.html?id=${item.id}"><img src="${item.image}" alt="${escapeHtml(item.name)}" onerror="imageFallback(this)"></a>
+                <div>
+                  <a href="product.html?id=${item.id}"><h3 style="font-size:24px">${escapeHtml(item.name)}</h3></a>
+                  <p class="muted">Size: ${escapeHtml(item.size)}</p>
+                  <p>${formatPrice(item.price)}</p>
+                  <div class="qty">
+                    <button aria-label="Decrease" onclick="setCartQuantity(${i}, ${item.quantity - 1})">−</button>
+                    <span>${item.quantity}</span>
+                    <button aria-label="Increase" onclick="setCartQuantity(${i}, ${item.quantity + 1})">+</button>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <p>${formatPrice(item.price * item.quantity)}</p>
+                  <button class="link-btn" onclick="moveToWishlist(${i})">Save for later</button><br>
+                  <button class="link-btn" onclick="setCartQuantity(${i}, 0)">Remove</button>
+                </div>
+              </div>`).join("")}
+          </div>
+
+          <aside class="summary">
+            <h2>Order summary</h2>
+            <div class="row"><span>Subtotal</span><span>${formatPrice(subtotal)}</span></div>
+            ${discount ? `<div class="row"><span>Promo ${promo}</span><span>− ${formatPrice(discount)}</span></div>` : ""}
+            <div class="row"><span>Delivery</span><span>${delivery ? formatPrice(delivery) : "Complimentary"}</span></div>
+            <div class="row total"><span>Total</span><span>${formatPrice(total)}</span></div>
+
+            <form id="promo-form" style="display:flex">
+              <input name="code" placeholder="Promo code" aria-label="Promo code" value="${promo || ""}">
+              <button class="btn-line" type="submit">Apply</button>
+            </form>
+
+            <form class="stack" id="checkout">
+              <span class="eyebrow">Delivery details</span>
+              <input name="name" required placeholder="Full name">
+              <input name="phone" required placeholder="Phone e.g. 07XX XXX XXX" pattern="^(\\+?254|0)[17]\\d{8}$" title="Enter a valid Kenyan mobile number">
+              <input name="address" required placeholder="Delivery address">
+              <span class="eyebrow">Payment</span>
+              <div class="pay-options">
+                <label class="pay-option"><input type="radio" name="pay" value="M-Pesa" checked> M-Pesa</label>
+                <label class="pay-option"><input type="radio" name="pay" value="Airtel Money"> Airtel Money</label>
+                <label class="pay-option"><input type="radio" name="pay" value="Card"> Credit / debit card</label>
+              </div>
+              <button class="btn" type="submit">Checkout · ${formatPrice(total)}</button>
+            </form>
+          </aside>
+        </div>`;
+
+      document.getElementById("promo-form").onsubmit = e => {
+        e.preventDefault();
+        const code = new FormData(e.target).get("code").trim().toUpperCase();
+        if (PROMOS[code]) {
+          promo = code;
+          store.set("promo", promo);
+          toast(`${code} applied`);
+        } else {
+          promo = null;
+          store.set("promo", null);
+          toast("That code is not valid");
+        }
+        renderCart();
+      };
+
+      document.getElementById("checkout").onsubmit = e => {
+        e.preventDefault();
+        const data = new FormData(e.target);
+        const order = "TE" + Date.now().toString().slice(-6);
+        cart = [];
+        promo = null;
+        store.set("promo", null);
+        saveCart();
+        document.getElementById("cart-root").innerHTML = `
+          <div class="empty">
+            <span class="eyebrow">Order ${order}</span>
+            <h2 style="font-size:40px">Thank you, ${escapeHtml(data.get("name"))}</h2>
+            <p class="muted">A ${escapeHtml(data.get("pay"))} payment request for ${formatPrice(total)} has been sent to ${escapeHtml(data.get("phone"))}.<br>Your pieces will arrive within two days.</p>
+            <a class="btn" href="shop.html">Continue shopping</a>
+          </div>`;
+      };
+    }
+
+    function moveToWishlist(index) {
+      const id = cart[index].id;
+      if (!wishlist.includes(id)) { wishlist.push(id); saveWishlist(); }
+      setCartQuantity(index, 0);
+      toast("Saved to your wishlist");
+    }
+
+    document.addEventListener("cart:change", renderCart);
+    renderCart();
+  </script>
+</body>
+</html>
