@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wishlist — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main class="container">
+    <div class="page-title">
+      <span class="eyebrow">Saved items</span>
+      <h1>My Wishlist</h1>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    function renderWishlist() {
+      const items = wishlist.map(findProduct).filter(Boolean);
+      document.getElementById("grid").innerHTML = items.length ? items.map(productCard).join("") :
+        `<div class="empty" style="grid-column:1/-1"><p>Tap the heart on any piece to save it here.</p><a class="btn" href="shop.html">Discover the collection</a></div>`;
+    }
+    document.addEventListener("wishlist:change", renderWishlist);
+    renderWishlist();
+  </script>
+</body>
+</html>

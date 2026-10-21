@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treq Edge — Luxury Fashion Multiverse</title>
+  <meta name="description" content="Treq Edge: ready-to-wear, bags, shoes and accessories across four fashion universes.">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="has-hero">
+  <main>
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <span class="eyebrow">Autumn / Winter 2026 Campaign</span>
+        <h1>Enter the<br>Multiverse</h1>
+        <div class="hero-actions">
+          <a class="btn btn-light" href="shop.html?new=1">Discover new in</a>
+          <a class="btn btn-line" href="collections.html">Explore universes</a>
+        </div>
+      </div>
+      <span class="scroll-cue">Scroll</span>
+    </section>
+
+    <section class="section container">
+      <div class="section-head reveal">
+        <div>
+          <span class="eyebrow">Just landed</span>
+          <h2>New In</h2>
+        </div>
+        <a class="link-btn" href="shop.html?new=1">Shop all new arrivals</a>
+      </div>
+      <div class="rail reveal" id="new-in"></div>
+    </section>
+
+    <section class="section container">
+      <div class="section-head reveal">
+        <div>
+          <span class="eyebrow">Four worlds, one wardrobe</span>
+          <h2>The Treq Edge Multiverse</h2>
+        </div>
+        <a class="link-btn" href="collections.html">View all universes</a>
+      </div>
+      <div class="universes reveal" id="universe-tiles"></div>
+    </section>
+
+    <section class="split" id="craft">
+      <div class="split-media">TE</div>
+      <div class="split-copy reveal">
+        <span class="eyebrow">Craft &amp; sustainability</span>
+        <h2>Made slowly, made to last</h2>
+        <p>Every Treq Edge piece starts with materials we can trace — full-grain leather, natural silks and hand-loomed cotton — and is finished by artisans in Nairobi and along the coast.</p>
+        <a class="btn-line" href="shop.html" style="justify-self:start">Shop the craft</a>
+      </div>
+    </section>
+
+    <section class="section container">
+      <div class="section-head reveal">
+        <div>
+          <span class="eyebrow">Shop by category</span>
+          <h2>Women &amp; Men</h2>
+        </div>
+      </div>
+      <div class="chips reveal" style="margin-bottom:40px;justify-content:center">
+        <a class="chip" href="shop.html?gender=women">Women</a>
+        <a class="chip" href="shop.html?gender=men">Men</a>
+        <a class="chip" href="shop.html?category=ready-to-wear">Ready-to-Wear</a>
+        <a class="chip" href="shop.html?category=bags">Handbags</a>
+        <a class="chip" href="shop.html?category=shoes">Shoes</a>
+        <a class="chip" href="shop.html?category=accessories">Accessories</a>
+      </div>
+      <div class="grid reveal" id="featured"></div>
+    </section>
+
+    <section class="container">
+      <div class="services reveal">
+        <div><h3>Complimentary delivery</h3><p>Free within Nairobi over KSh 5,000. Two-day shipping across Kenya.</p></div>
+        <div><h3>M-Pesa &amp; Airtel Money</h3><p>Pay in seconds with the mobile wallet you already use.</p></div>
+        <div><h3>Book an appointment</h3><p>Shop in person with a client advisor at your nearest store.</p><a class="link-btn" href="stores.html">Find a store</a></div>
+        <div><h3>Gifting</h3><p>Every order arrives in signature packaging with a handwritten note.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.getElementById("new-in").innerHTML = PRODUCTS.filter(p => p.isNew).map(productCard).join("");
+    document.getElementById("featured").innerHTML = PRODUCTS.filter(p => !p.isNew).slice(0, 8).map(productCard).join("");
+    document.getElementById("universe-tiles").innerHTML = Object.entries(UNIVERSES).map(([key, u]) => `
+      <a class="universe-tile tile-${key}" href="collections.html#${key}">
+        <span class="eyebrow">Universe</span>
+        <h3>${u.name}</h3>
+        <p>${u.tagline}</p>
+        <span class="link-btn">Enter</span>
+      </a>`).join("");
+  </script>
+</body>
+</html>

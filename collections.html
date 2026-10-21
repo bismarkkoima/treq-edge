@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Multiverse — Treq Edge</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <main>
+    <div class="page-title container">
+      <span class="eyebrow">Collections</span>
+      <h1>The Multiverse</h1>
+      <p>Four worlds, each with its own mood, palette and point of view. Step between them — the site shifts its accent to match the universe you're in.</p>
+      <div class="chips" style="justify-content:center;margin-top:24px" id="jump"></div>
+    </div>
+    <div id="bands"></div>
+  </main>
+
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.getElementById("jump").innerHTML = Object.entries(UNIVERSES).map(([k, u]) =>
+      `<a class="chip" href="#${k}">${u.name}</a>`).join("");
+
+    document.getElementById("bands").innerHTML = Object.entries(UNIVERSES).map(([key, u]) => `
+      <section class="universe-band tile-${key}" id="${key}" data-universe="${key}">
+        <span class="eyebrow">Universe</span>
+        <h2>${u.name}</h2>
+        <p class="tag">${u.tagline}</p>
+        <div class="rail">${PRODUCTS.filter(p => p.universe === key).map(productCard).join("")}</div>
+        <a class="btn btn-light" style="margin-top:32px" href="shop.html?universe=${key}">Shop ${u.name}</a>
+      </section>`).join("");
+
+    // Shift the site accent as each universe scrolls into view.
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) setUniverse(e.target.dataset.universe); });
+    }, { threshold: 0.5 });
+    document.querySelectorAll(".universe-band").forEach(band => observer.observe(band));
+  </script>
+</body>
+</html>
